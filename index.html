@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>ESP32 Smart Socket</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d6efd">
+
+<!-- MQTT.js (WebSocket) -->
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  margin-top: 50px;
+  background: #f4f6f8;
+}
+
+h2 {
+  color: #333;
+}
+
+button {
+  font-size: 22px;
+  padding: 15px 40px;
+  margin: 10px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.on {
+  background: #28a745;
+  color: white;
+}
+
+.off {
+  background: #dc3545;
+  color: white;
+}
+
+#status {
+  margin-top: 20px;
+  font-size: 18px;
+  font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+
+<h2>ESP32 Smart Socket</h2>
+
+<button class="on" onclick="sendCmd('ON')">ON</button>
+<button class="off" onclick="sendCmd('OFF')">OFF</button>
+
+<div id="status">Status: --</div>
+
+<script>
+// ================= MQTT CONFIG =================
+const broker = "wss://broker.hivemq.com:8884/mqtt";
+const deviceId = "socket01";
+
+const topicControl = `pmu/socket/${deviceId}/control`;
+const topicStatus  = `pmu/socket/${deviceId}/status`;
+
+// ===============================================
+
+const client = mqtt.connect(broker);
+
+// MQTT Connected
+client.on("connect", () => {
+  console.log("MQTT Connected ✅");
+  document.getElementById("status").innerText = "Status: Connected";
+  client.subscribe(topicStatus);
+});
+
+// Receive message from ESP32
+client.on("message", (topic, message) => {
+  document.getElementById("status").innerText =
+    "Status: " + message.toString();
+});
+
+// MQTT Error
+client.on("error", (err) => {
+  console.log("MQTT Error ❌", err);
+  document.getElementById("status").innerText = "Status: MQTT Error";
+});
+
+// Send ON / OFF
+function sendCmd(cmd) {
+  client.publish(topicControl, cmd);
+}
+
+// ============ SERVICE WORKER (PWA) ============
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("service-worker.js")
+    .then(() => console.log("Service Worker Registered ✅"));
+}
+</script>
+
+</body>
+</html>
